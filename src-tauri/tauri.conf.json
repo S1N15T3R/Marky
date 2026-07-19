@@ -67,8 +67,7 @@
           "libjavascriptcoregtk-4.1-0",
           "libsoup-3.0-0",
           "libssl3",
-          "libayatana-indicator3-7",
-          "patchelf"
+          "libayatana-indicator3-7"
         ]
       }
     }
