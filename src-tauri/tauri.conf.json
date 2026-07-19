@@ -59,13 +59,23 @@
     },
     "linux": {
       "deb": {
-        "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0"]
+        "depends": [
+          "libwebkit2gtk-4.1-0",
+          "libgtk-3-0",
+          "libayatana-appindicator3-1",
+          "librsvg2-2",
+          "libjavascriptcoregtk-4.1-0",
+          "libsoup-3.0-0",
+          "libssl3",
+          "libayatana-indicator3-7",
+          "patchelf"
+        ]
       }
     }
   },
   "plugins": {
     "sql": {
-      "preload": ["$APPDATA/marky.db"]
+      "preload": ["sqlite:marky.db"]
     },
     "updater": {
       "endpoints": ["https://github.com/marky-app/marky/releases/latest/download/latest.json"],
