@@ -1,0 +1,30 @@
+[package]
+name = "marky"
+version = "1.0.0"
+description = "Marky — cross-platform markdown editor with AI integration"
+authors = ["Marky Contributors"]
+license = "MIT"
+repository = "https://github.com/marky-app/marky"
+edition = "2021"
+rust-version = "1.77"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["protocol-asset", "macos-private-api"] }
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-sql = "2"
+tauri-plugin-store = "2"
+tauri-plugin-clipboard-manager = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-process = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[features]
+# This feature is used for production builds where `devUrl` is disabled.
+custom-protocol = ["tauri/custom-protocol"]

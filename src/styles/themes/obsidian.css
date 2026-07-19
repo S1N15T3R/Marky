@@ -1,0 +1,16 @@
+/* Obsidian — violet accent, glassmorphism panels */
+[data-theme="obsidian"] {
+  --marky-bg: #1a1a1a;
+  --marky-surface: rgba(40, 40, 48, 0.6);
+  --marky-surface-2: rgba(55, 55, 66, 0.6);
+  --marky-border: rgba(255, 255, 255, 0.08);
+  --marky-accent: #7c3aed;
+  --marky-accent-2: #a78bfa;
+  --marky-text: #e5e5ea;
+  --marky-text-muted: #9a9aa5;
+  --marky-glow: 0 0 8px rgba(124, 58, 237, 0.5);
+  --marky-radius: 8px;
+}
+[data-theme="obsidian"] .glass {
+  backdrop-filter: blur(12px);
+}

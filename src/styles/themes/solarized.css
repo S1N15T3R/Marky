@@ -1,0 +1,13 @@
+/* Solarized Dark — classic warm, low-contrast professional palette */
+[data-theme="solarized"] {
+  --marky-bg: #002b36;
+  --marky-surface: #073642;
+  --marky-surface-2: #0a4150;
+  --marky-border: #11434f;
+  --marky-accent: #2aa198;
+  --marky-accent-2: #b58900;
+  --marky-text: #93a1a1;
+  --marky-text-muted: #586e75;
+  --marky-glow: 0 0 6px rgba(42, 161, 152, 0.4);
+  --marky-radius: 8px;
+}

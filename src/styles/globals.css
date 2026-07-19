@@ -1,0 +1,238 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   Base token defaults (dark themes). Paper theme overrides some.
+   ============================================================ */
+:root {
+  --marky-bg: #0d1117;
+  --marky-surface: #161b22;
+  --marky-surface-2: #1c2128;
+  --marky-border: #30363d;
+  --marky-accent: #00ff41;
+  --marky-accent-2: #39d353;
+  --marky-text: #c9d1d9;
+  --marky-text-muted: #8b949e;
+  --marky-glow: 0 0 6px rgba(0, 255, 65, 0.5);
+  --marky-radius: 8px;
+  --marky-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Default dark syntax tokens (atom-one-dark-ish) */
+  --hljs-bg: #0d1117;
+  --hljs-fg: #abb2bf;
+  --hljs-comment: #5c6370;
+  --hljs-keyword: #c678dd;
+  --hljs-string: #98c379;
+  --hljs-number: #d19a66;
+  --hljs-title: #61afef;
+  --hljs-attr: #d19a66;
+  --hljs-built_in: #e6c07b;
+  --hljs-literal: #56b6c2;
+  --hljs-type: #e5c07b;
+  --hljs-meta: #abb2bf;
+  --hljs-symbol: #56b6c2;
+  --hljs-add: #98c379;
+  --hljs-del: #e06c75;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--marky-bg);
+  color: var(--marky-text);
+  font-family: var(--marky-font-mono);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* ============================================================
+   Scrollbars — thin, themed by accent
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--marky-accent) 45%, transparent);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--marky-accent) 70%, transparent);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--marky-accent) 45%, transparent) transparent;
+}
+
+/* ============================================================
+   Interactive element transitions (150ms)
+   ============================================================ */
+button,
+.a11y,
+.interactive {
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease,
+    box-shadow 150ms ease, opacity 150ms ease;
+}
+
+.accent-text {
+  color: var(--marky-accent);
+}
+.accent-bg {
+  background: var(--marky-accent);
+  color: #000;
+}
+
+/* Glow helper, enabled for cyberpunk */
+[data-theme="cyberpunk"] .glow-on-active:focus,
+[data-theme="cyberpunk"] .glow-on-active:hover,
+[data-theme="cyberpunk"] .accent-glow {
+  box-shadow: var(--marky-glow);
+}
+
+/* Glass panels for obsidian */
+.glass {
+  background: var(--marky-surface);
+  backdrop-filter: blur(10px);
+}
+
+/* ============================================================
+   CRT scanline overlay
+   ============================================================ */
+.crt-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.03;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 1) 3px,
+    rgba(0, 0, 0, 1) 3px
+  );
+  display: none;
+}
+.crt-overlay.active {
+  display: block;
+}
+
+/* ============================================================
+   Glitch text effect (CSS only) for logo / hover
+   ============================================================ */
+.glitch {
+  position: relative;
+  display: inline-block;
+}
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  overflow: hidden;
+  opacity: 0;
+}
+.glitch:hover::before {
+  opacity: 0.8;
+  color: var(--marky-accent);
+  animation: glitch-1 0.4s infinite linear alternate;
+  clip-path: inset(0 0 60% 0);
+}
+.glitch:hover::after {
+  opacity: 0.8;
+  color: var(--marky-accent-2);
+  animation: glitch-2 0.4s infinite linear alternate;
+  clip-path: inset(60% 0 0 0);
+}
+@keyframes glitch-1 {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(-2px, -1px); }
+}
+@keyframes glitch-2 {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(2px, 1px); }
+}
+
+/* ============================================================
+   highlight.js theming via variables
+   ============================================================ */
+.hljs {
+  color: var(--hljs-fg);
+  background: transparent;
+}
+.hljs-comment,
+.hljs-quote { color: var(--hljs-comment); font-style: italic; }
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in { color: var(--hljs-keyword); }
+.hljs-string,
+.hljs-attr { color: var(--hljs-string); }
+.hljs-number,
+.hljs-literal,
+.hljs-symbol { color: var(--hljs-number); }
+.hljs-title,
+.hljs-section,
+.hljs-name { color: var(--hljs-title); }
+.hljs-type,
+.hljs-class .hljs-title { color: var(--hljs-type); }
+.hljs-meta { color: var(--hljs-meta); }
+.hljs-addition { color: var(--hljs-add); }
+.hljs-deletion { color: var(--hljs-del); }
+
+pre code.hljs {
+  display: block;
+  padding: 1em;
+  overflow-x: auto;
+  background: var(--hljs-bg);
+  border-radius: 6px;
+}
+
+/* Markdown preview task checkboxes */
+.marky-preview input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--marky-accent);
+  cursor: pointer;
+}
+
+/* Fade-in helper */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in {
+  animation: fadeIn 150ms ease;
+}
+
+/* Typing indicator */
+.typing-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--marky-accent);
+  animation: typing 1s infinite ease-in-out;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.typing-dot:nth-child(3) { animation-delay: 0.3s; }
+@keyframes typing {
+  0%, 100% { opacity: 0.3; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-3px); }
+}

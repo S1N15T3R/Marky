@@ -1,0 +1,31 @@
+/* Paper Light — daytime light theme, monospace editor aesthetic */
+[data-theme="paper"] {
+  --marky-bg: #fafafa;
+  --marky-surface: #ffffff;
+  --marky-surface-2: #f0f0f0;
+  --marky-border: #e2e2e2;
+  --marky-accent: #0a7d4d;
+  --marky-accent-2: #2563eb;
+  --marky-text: #1a1a1a;
+  --marky-text-muted: #6b7280;
+  --marky-glow: 0 0 4px rgba(10, 125, 77, 0.3);
+  --marky-radius: 8px;
+  color-scheme: light;
+
+  /* Light syntax highlighting tokens (GitHub-lightish) */
+  --hljs-bg: #f6f8fa;
+  --hljs-fg: #24292e;
+  --hljs-comment: #6a737d;
+  --hljs-keyword: #d73a49;
+  --hljs-string: #032f62;
+  --hljs-number: #005cc5;
+  --hljs-title: #6f42c1;
+  --hljs-attr: #005cc5;
+  --hljs-built_in: #e36209;
+  --hljs-literal: #005cc5;
+  --hljs-type: #6f42c1;
+  --hljs-meta: #6a737d;
+  --hljs-symbol: #e36209;
+  --hljs-add: #22863a;
+  --hljs-del: #b31d28;
+}

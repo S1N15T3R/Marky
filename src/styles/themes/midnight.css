@@ -1,0 +1,13 @@
+/* Midnight Hacker — default GitHub-dark based theme */
+[data-theme="midnight"] {
+  --marky-bg: #0d1117;
+  --marky-surface: #161b22;
+  --marky-surface-2: #1c2128;
+  --marky-border: #30363d;
+  --marky-accent: #00ff41;
+  --marky-accent-2: #39d353;
+  --marky-text: #c9d1d9;
+  --marky-text-muted: #8b949e;
+  --marky-glow: 0 0 6px rgba(0, 255, 65, 0.5);
+  --marky-radius: 8px;
+}
