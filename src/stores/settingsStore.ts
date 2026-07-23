@@ -17,8 +17,10 @@ const DEFAULT_SETTINGS: Settings = {
   syncScroll: true,
   previewZoom: 100,
   editorZoom: 100,
-  activeProviderId: "prov-openai",
+  activeProviderId: "prov-ollama",
   defaultExportDir: null,
+  aiPanelWidth: 360,
+  fileSidebarWidth: 256,
 };
 
 interface SettingsState {

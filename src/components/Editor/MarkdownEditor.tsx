@@ -111,6 +111,8 @@ export default function MarkdownEditor() {
     monacoRef.current = monaco;
     defineMonacoThemes(monaco);
     applyOptions();
+    // Expose the editor instance globally so sync-scroll + shortcuts can use it.
+    (window as any).__markyEditor = ed;
   };
 
   function applyOptions() {
@@ -137,10 +139,8 @@ export default function MarkdownEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.editorFontSize, settings.wordWrap, settings.lineNumbers, settings.minimap, theme]);
 
-  // Expose the editor instance globally so sync-scroll + shortcuts can use it.
-  useEffect(() => {
-    (window as any).__markyEditor = editorRef.current;
-  });
+  // Expose the editor instance globally (set in onMount) so sync-scroll +
+  // shortcuts can use it.
 
   return (
     <Editor

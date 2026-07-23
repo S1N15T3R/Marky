@@ -60,10 +60,57 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [toc, setToc] = useState<TocItem[]>([]);
+  const [aiPanelOpen, setAiPanelOpen] = useState(false);
 
   const editorScrollRef = useRef<HTMLDivElement>(null);
   const previewScrollRef = useRef<HTMLDivElement>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Keep the AI panel visibility in sync with the AI store (toggled by the
+  // command palette and keyboard shortcuts via useAiStore.setPanelOpen).
+  useEffect(() => {
+    const unsub = useAiStore.subscribe((s) => setAiPanelOpen(s.panelOpen));
+    setAiPanelOpen(useAiStore.getState().panelOpen);
+    return unsub;
+  }, []);
+
+  // Drag-to-resize the AI chat split. Persists to settings (and thus the store).
+  const startResizeAi = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = useSettingsStore.getState().settings.aiPanelWidth;
+    const onMove = (ev: MouseEvent) => {
+      const next = Math.max(280, Math.min(720, startW + (startX - ev.clientX)));
+      useSettingsStore.getState().setSettings({ aiPanelWidth: next });
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      document.body.style.cursor = "";
+    };
+    document.body.style.cursor = "col-resize";
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, []);
+
+  // Drag-to-resize the Files/explorer sidebar. Persists to settings.
+  const startResizeSidebar = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = useSettingsStore.getState().settings.fileSidebarWidth;
+    const onMove = (ev: MouseEvent) => {
+      const next = Math.max(180, Math.min(520, startW + (ev.clientX - startX)));
+      useSettingsStore.getState().setSettings({ fileSidebarWidth: next });
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      document.body.style.cursor = "";
+    };
+    document.body.style.cursor = "col-resize";
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, []);
 
   // ---- File operations ----
   const openFile = useCallback(async () => {
@@ -256,8 +303,13 @@ export default function App() {
 
       <div className="flex min-h-0 flex-1">
         {sidebarOpen && (
-          <div className="w-60 shrink-0 border-r border-border bg-surface">
+          <div style={{ width: settings.fileSidebarWidth }} className="flex shrink-0 border-r border-border bg-surface">
             <FileSidebar />
+            <div
+              onMouseDown={startResizeSidebar}
+              className="w-1 cursor-col-resize bg-transparent transition-colors hover:bg-accent/40"
+              title="Drag to resize the Files panel"
+            />
           </div>
         )}
 
@@ -283,7 +335,18 @@ export default function App() {
           </div>
         </div>
 
-        <AiPanel />
+        {aiPanelOpen && (
+          <>
+            <div
+              onMouseDown={startResizeAi}
+              className="w-1 shrink-0 cursor-col-resize bg-border hover:bg-accent"
+              title="Drag to resize AI panel"
+            />
+            <div style={{ width: settings.aiPanelWidth }} className="h-full shrink-0">
+              <AiPanel />
+            </div>
+          </>
+        )}
 
         {tocOpen && (
           <div className="w-56 shrink-0 overflow-y-auto border-l border-border bg-surface">

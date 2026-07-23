@@ -22,9 +22,16 @@ const lsKey = (k: string) => `marky:${k}`;
 
 export async function storeGet<T>(key: string, fallback: T): Promise<T> {
   if (runningInTauri) {
-    const store = await getStore();
-    const v = await store?.get(key);
-    return v === undefined ? fallback : (v as T);
+    try {
+      const store = await getStore();
+      const v = await store?.get(key);
+      // The Tauri store plugin returns `null` (not undefined) for a missing
+      // key. Treat both as "not present" so we fall back to the default
+      // instead of accidentally persisting/wiping real data.
+      return v == null ? fallback : (v as T);
+    } catch {
+      return fallback;
+    }
   }
   const raw = localStorage.getItem(lsKey(key));
   return raw ? (JSON.parse(raw) as T) : fallback;
@@ -101,13 +108,13 @@ export async function dbGetRecent(): Promise<{ path: string; name: string; last_
 export async function openFilePicker(): Promise<{ path: string; content: string } | null> {
   if (runningInTauri) {
     const dialog = await import("@tauri-apps/plugin-dialog");
-    const fs = await import("@tauri-apps/plugin-fs");
+    const { readTextFile } = await import("@tauri-apps/plugin-fs");
     const selected = await dialog.open({
       multiple: false,
       filters: [{ name: "Markdown", extensions: ["md", "markdown", "txt"] }],
     });
     if (!selected || Array.isArray(selected)) return null;
-    const content = await fs.readTextFile(selected as string);
+    const content = await readTextFile(selected as string);
     return { path: selected as string, content };
   }
   // Browser fallback
@@ -155,16 +162,24 @@ export async function writeTextFile(path: string, content: string): Promise<void
 
 export async function readDir(path: string, depth = 4): Promise<any[]> {
   if (runningInTauri) {
-    const { invoke } = await import("@tauri-apps/api/core");
-    return invoke("read_dir", { path, depth });
+    const fs = await import("@tauri-apps/plugin-fs");
+    const entries = await fs.readDir(path);
+    const walk = (nodes: any[], d: number): any[] =>
+      nodes.map((n) => ({
+        name: n.name,
+        path: n.path || `${path}/${n.name}`,
+        isDir: n.isDirectory,
+        children: n.isDirectory && d > 0 && n.children ? walk(n.children, d - 1) : undefined,
+      }));
+    return walk(entries, depth);
   }
   return [];
 }
 
 export async function fileExists(path: string): Promise<boolean> {
   if (runningInTauri) {
-    const { invoke } = await import("@tauri-apps/api/core");
-    return invoke("file_exists", { path });
+    const fs = await import("@tauri-apps/plugin-fs");
+    return fs.exists(path);
   }
   return false;
 }
@@ -207,8 +222,8 @@ export function downloadText(content: string, filename: string) {
 
 export async function exportFile(path: string, content: string): Promise<void> {
   if (runningInTauri) {
-    const { invoke } = await import("@tauri-apps/api/core");
-    await invoke("export_html", { path, html: content });
+    const fs = await import("@tauri-apps/plugin-fs");
+    await fs.writeTextFile(path, content);
     return;
   }
   const filename = path.split(/[\\/]/).pop() || "export";

@@ -3,7 +3,6 @@
 // command palette) without a React component. The useAi hook wraps this.
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useAiStore } from "@/stores/aiStore";
-import { useFileStore } from "@/stores/fileStore";
 import { handlerFor } from "@/lib/ai-providers";
 import type { AIProviderConfig, ChatMessage } from "@/types";
 import { uid } from "@/lib/utils";
@@ -17,11 +16,7 @@ export function getActiveProvider(): AIProviderConfig | null {
   return providers.find((x) => x.id === activeProviderId && x.enabled) || providers.find((x) => x.enabled) || null;
 }
 
-export function currentFileKey(): string {
-  return useFileStore.getState().path || "untitled";
-}
-
-// Streams a user prompt into the active file's conversation.
+// Streams a user prompt into the active chat session.
 export async function streamToConversation(
   userText: string,
   opts?: { system?: string; onDone?: (text: string) => void }
@@ -32,14 +27,14 @@ export async function streamToConversation(
     return;
   }
   const handler = handlerFor(provider.type);
-  const key = currentFileKey();
   const ai = useAiStore.getState();
+  const sess = ai.activeSession();
 
-  ai.pushMessage(key, { id: uid(), role: "user", content: userText, createdAt: Date.now() });
+  ai.pushMessage({ id: uid(), role: "user", content: userText, createdAt: Date.now() });
   const assistantId = uid();
-  ai.pushMessage(key, { id: assistantId, role: "assistant", content: "", createdAt: Date.now(), streaming: true });
+  ai.pushMessage({ id: assistantId, role: "assistant", content: "", createdAt: Date.now(), streaming: true });
 
-  const history = useAiStore.getState().conversations[key] || [];
+  const history = sess.messages;
   const payloadMessages = history
     .filter((m) => m.id !== assistantId && m.content)
     .map((m) => ({ role: m.role, content: m.content }));
@@ -63,15 +58,30 @@ export async function streamToConversation(
     });
     for await (const chunk of stream) {
       acc += chunk;
-      useAiStore.getState().updateMessage(key, assistantId, { content: acc });
+      useAiStore.getState().updateMessage(assistantId, { content: acc });
     }
-    useAiStore.getState().updateMessage(key, assistantId, { streaming: false, tokens: meta.usage });
+    useAiStore.getState().updateMessage(assistantId, { streaming: false, tokens: meta.usage });
   } catch (e: any) {
     const cancelled = controller.signal.aborted;
-    useAiStore.getState().updateMessage(key, assistantId, {
-      content: acc + (cancelled ? "" : `\n\n[error] ${e?.message || e}`),
+    if (cancelled) {
+      useAiStore.getState().updateMessage(assistantId, { content: acc, streaming: false, error: false });
+      return;
+    }
+    // Diagnostics: surface the raw error so webview-specific failures
+    // (CSP/mixed-content/CORS) are visible, not swallowed.
+    console.error("[Marky AI raw error]", e);
+    // Surface an actionable message instead of the opaque "[error] Load failed".
+    let msg = e?.message || String(e);
+    if (/failed to fetch|load failed|networkerror|network error/i.test(msg)) {
+      const host = provider.baseUrl.replace(/\/+$/, "");
+      msg = `Cannot reach ${host}.\n\nIs the provider running and reachable?\n• Ollama: 'ollama serve' (default http://127.0.0.1:11434)\n• Cloud keys: check the API key in Settings → AI`;
+    } else if (e?.status) {
+      msg = `Provider error ${e.status}: ${msg}`;
+    }
+    useAiStore.getState().updateMessage(assistantId, {
+      content: acc + `\n\n[error] ${msg}`,
       streaming: false,
-      error: !cancelled,
+      error: true,
     });
   } finally {
     useAiStore.getState().setBusy(false);

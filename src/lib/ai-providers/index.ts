@@ -2,6 +2,7 @@ import type { AIProviderConfig } from "@/types";
 import { openAICompatibleStream } from "./openai-compatible";
 import { anthropicStream } from "./anthropic";
 import { googleStream } from "./google";
+import { ollamaStream } from "./ollama";
 import type { StreamFn } from "./transport";
 
 interface ProviderHandler {
@@ -38,10 +39,10 @@ export const PROVIDERS: Record<AIProviderConfig["type"], ProviderHandler> = {
   },
   ollama: {
     label: "Ollama",
-    defaultBaseUrl: "http://localhost:11434/api",
-    defaultModels: ["llama3.1", "llama3", "mistral", "qwen2.5"],
+    defaultBaseUrl: "http://127.0.0.1:11434/api",
+    defaultModels: ["qwen3:4b", "llama3.1", "llama3", "mistral", "qwen2.5", "deepseek-r1:1.5b"],
     needsKey: false,
-    stream: openAICompatibleStream,
+    stream: ollamaStream,
   },
   openrouter: {
     label: "OpenRouter",

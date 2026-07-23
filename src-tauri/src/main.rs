@@ -42,7 +42,8 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_sql::Builder::default().build());
+        .plugin(tauri_plugin_sql::Builder::default().build())
+        .plugin(tauri_plugin_http::init());
 
     // The updater plugin requires network + a pubkey; only include in release.
     #[cfg(not(debug_assertions))]

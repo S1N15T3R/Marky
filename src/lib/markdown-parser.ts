@@ -22,7 +22,10 @@ const marked = new Marked(
 const escapeForAttr = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-// Build a slug id identical to the scheme used by extractToc().
+// Build a slug id identical to the scheme used by extractToc(). The `marky-`
+// prefix avoids DOM-clobbering names (title, head, body, …) that DOMPurify
+// silently strips, which would otherwise break TOC anchor jumps.
+const SLUG_PREFIX = "marky-";
 function slugify(text: string, used: Map<string, number>): string {
   let id = text
     .toLowerCase()
@@ -31,16 +34,25 @@ function slugify(text: string, used: Map<string, number>): string {
   const count = used.get(id) || 0;
   used.set(id, count + 1);
   if (count > 0) id = `${id}-${count}`;
-  return id;
+  return SLUG_PREFIX + id;
 }
 
 const slugState = new Map<string, number>();
 
+// Marked v12+ passes a token object to each renderer method (not positional
+// args). `this.parser` is available for inline rendering. The previous
+// positional-arg signature crashed on the first code block / heading, taking
+// down the whole preview.
 marked.use({
   renderer: {
-    // @ts-expect-error - marked v14 renderer signature
-    code(code: string, infostring: string | undefined, escaped: boolean) {
-      const lang = (infostring || "").trim().split(/\s+/)[0];
+    // Keep task-list checkboxes interactive (no `disabled` attr) so the
+    // preview's click-to-toggle wiring can write state back into the source.
+    checkbox(token: any) {
+      return `<input type="checkbox" ${token.checked ? "checked" : ""} />`;
+    },
+    code(token: any) {
+      const code = token.text as string;
+      const lang = (token.lang || "").trim().split(/\s+/)[0];
       let highlighted: string;
       if (lang && hljs.getLanguage(lang)) {
         highlighted = hljs.highlight(code, { language: lang }).value;
@@ -50,20 +62,23 @@ marked.use({
       const cls = lang ? ` class="hljs language-${escapeForAttr(lang)}"` : ` class="hljs"`;
       return `<pre><code${cls}>${highlighted}</code></pre>\n`;
     },
-    // @ts-expect-error - marked v14 renderer signature
-    heading(text: string, level: number) {
-      const plain = text.replace(/<[^>]+>/g, "");
+    heading(token: any) {
+      const text = this.parser.parseInline(token.tokens);
+      const plain = token.text as string;
       const id = slugify(plain, slugState);
-      return `<h${level} id="${escapeForAttr(id)}">${text}</h${level}>\n`;
+      return `<h${token.depth} id="${escapeForAttr(id)}">${text}</h${token.depth}>\n`;
     },
   },
 });
 
 // KaTeX needs math spans to NOT be escaped; DOMPurify must allow them.
+// Task-list checkboxes (<input type="checkbox">) are allowed (and kept
+// interactive — the renderers never emit a `disabled` attr) so the preview's
+// click-to-toggle feature works.
 const SANITIZE_CONFIG = {
-  ADD_TAGS: ["math", "semantics", "mrow", "mi", "mo", "mn", "msup", "msub", "annotation", "mfrac", "sqrt", "msqrt"],
-  ADD_ATTR: ["encoding", "xmlns", "annotation", "style", "class", "aria-hidden"],
-  FORBID_TAGS: ["style", "script", "iframe", "form", "input", "button"],
+  ADD_TAGS: ["math", "semantics", "mrow", "mi", "mo", "mn", "msup", "msub", "annotation", "mfrac", "sqrt", "msqrt", "input"],
+  ADD_ATTR: ["encoding", "xmlns", "annotation", "style", "class", "aria-hidden", "type", "checked"],
+  FORBID_TAGS: ["style", "script", "iframe", "form", "button"],
   FORBID_ATTR: ["onerror", "onload", "onclick"],
 };
 
@@ -71,6 +86,9 @@ let tocSource = "";
 
 export function parseMarkdown(src: string): string {
   tocSource = src;
+  // Reset the slug counter before each parse so heading ids are stable
+  // across re-renders and match the ids produced by extractToc().
+  slugState.clear();
   let html = marked.parse(src, { async: false }) as string;
   html = DOMPurify.sanitize(html, SANITIZE_CONFIG);
   return html;
@@ -110,6 +128,8 @@ export function extractToc(src: string): TocItem[] {
     const count = slugCount.get(id) || 0;
     slugCount.set(id, count + 1);
     if (count > 0) id = `${id}-${count}`;
+    // Must match the prefix used in parseMarkdown()'s slugify().
+    id = SLUG_PREFIX + id;
     items.push({ id, text, level });
   }
   return items;

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { AIProviderConfig, ChatMessage, CustomPrompt, QuickAction } from "@/types";
 import { defaultProviders } from "@/lib/ai-providers/defaults";
+import { uid } from "@/lib/utils";
 
 const DEFAULT_QUICK_ACTIONS: QuickAction[] = [
   { id: "improve", label: "Improve writing", prompt: "Improve the writing of the following text while preserving its meaning. Keep markdown formatting.\n\n{selection}", icon: "Sparkles" },
@@ -12,42 +13,66 @@ const DEFAULT_QUICK_ACTIONS: QuickAction[] = [
   { id: "table", label: "Convert to table", prompt: "Convert the following information into a GitHub-flavored markdown table:\n\n{selection}", icon: "Table" },
 ];
 
+export interface ChatSession {
+  id: string;
+  title: string;
+  messages: ChatMessage[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 interface AiState {
   providers: AIProviderConfig[];
-  conversations: Record<string, ChatMessage[]>; // keyed by file path (or "untitled")
-  activeFileKey: string;
+  sessions: ChatSession[];
+  activeSessionId: string | null;
   busy: boolean;
   abort: AbortController | null;
   quickActions: QuickAction[];
   customPrompts: CustomPrompt[];
   panelOpen: boolean;
   selectedText: string;
+  agentMode: boolean;
 
   setProviders: (p: AIProviderConfig[]) => void;
   upsertProvider: (p: AIProviderConfig) => void;
   removeProvider: (id: string) => void;
-  setActiveFileKey: (k: string) => void;
   setPanelOpen: (open: boolean) => void;
+  setAgentMode: (on: boolean) => void;
   setBusy: (b: boolean) => void;
   setAbort: (a: AbortController | null) => void;
-  pushMessage: (key: string, msg: ChatMessage) => void;
-  updateMessage: (key: string, id: string, patch: Partial<ChatMessage>) => void;
-  clearConversation: (key: string) => void;
+
+  newSession: (title?: string) => string;
+  switchSession: (id: string) => void;
+  deleteSession: (id: string) => void;
+  renameSession: (id: string, title: string) => void;
+  setSessions: (s: ChatSession[]) => void;
+  setActiveSessionId: (id: string | null) => void;
+  activeSession: () => ChatSession;
+
+  pushMessage: (msg: ChatMessage) => void;
+  updateMessage: (id: string, patch: Partial<ChatMessage>) => void;
+  clearActiveSession: () => void;
   setQuickActions: (a: QuickAction[]) => void;
   setCustomPrompts: (p: CustomPrompt[]) => void;
   setSelectedText: (t: string) => void;
 }
 
-export const useAiStore = create<AiState>((set) => ({
+const makeSession = (title?: string): ChatSession => {
+  const now = Date.now();
+  return { id: uid(), title: title || "New chat", messages: [], createdAt: now, updatedAt: now };
+};
+
+export const useAiStore = create<AiState>((set, get) => ({
   providers: defaultProviders(),
-  conversations: {},
-  activeFileKey: "untitled",
+  sessions: [],
+  activeSessionId: null,
   busy: false,
   abort: null,
   quickActions: DEFAULT_QUICK_ACTIONS,
   customPrompts: [],
   panelOpen: false,
   selectedText: "",
+  agentMode: false,
 
   setProviders: (providers) => set({ providers }),
   upsertProvider: (p) =>
@@ -60,25 +85,67 @@ export const useAiStore = create<AiState>((set) => ({
       }
       return { providers: [...s.providers, p] };
     }),
-  removeProvider: (id) =>
-    set((s) => ({ providers: s.providers.filter((p) => p.id !== id) })),
-  setActiveFileKey: (activeFileKey) => set({ activeFileKey }),
+  removeProvider: (id) => set((s) => ({ providers: s.providers.filter((p) => p.id !== id) })),
   setPanelOpen: (panelOpen) => set({ panelOpen }),
+  setAgentMode: (agentMode) => set({ agentMode }),
   setBusy: (busy) => set({ busy }),
   setAbort: (abort) => set({ abort }),
-  pushMessage: (key, msg) =>
-    set((s) => ({
-      conversations: { ...s.conversations, [key]: [...(s.conversations[key] || []), msg] },
+
+  newSession: (title) => {
+    const s = makeSession(title);
+    set((st) => ({ sessions: [s, ...st.sessions], activeSessionId: s.id }));
+    return s.id;
+  },
+  switchSession: (id) => set({ activeSessionId: id }),
+  deleteSession: (id) =>
+    set((st) => {
+      const sessions = st.sessions.filter((x) => x.id !== id);
+      const activeSessionId =
+        st.activeSessionId === id ? (sessions[0]?.id ?? null) : st.activeSessionId;
+      return { sessions, activeSessionId };
+    }),
+  renameSession: (id, title) =>
+    set((st) => ({
+      sessions: st.sessions.map((x) => (x.id === id ? { ...x, title } : x)),
     })),
-  updateMessage: (key, id, patch) =>
-    set((s) => ({
-      conversations: {
-        ...s.conversations,
-        [key]: (s.conversations[key] || []).map((m) => (m.id === id ? { ...m, ...patch } : m)),
-      },
+  setSessions: (sessions) => set({ sessions }),
+  setActiveSessionId: (activeSessionId) => set({ activeSessionId }),
+  activeSession: () => {
+    const st = get();
+    let sess = st.sessions.find((x) => x.id === st.activeSessionId);
+    if (!sess) {
+      sess = makeSession();
+      set({ sessions: [sess, ...st.sessions], activeSessionId: sess.id });
+    }
+    return sess;
+  },
+
+  pushMessage: (msg) =>
+    set((st) => ({
+      activeSessionId: st.activeSessionId || (st.sessions[0]?.id ?? null),
+      sessions: st.sessions.map((s) =>
+        s.id === (st.activeSessionId ?? st.sessions[0]?.id)
+          ? { ...s, messages: [...s.messages, msg], updatedAt: Date.now() }
+          : s
+      ),
     })),
-  clearConversation: (key) =>
-    set((s) => ({ conversations: { ...s.conversations, [key]: [] } })),
+  updateMessage: (id, patch) =>
+    set((st) => ({
+      sessions: st.sessions.map((s) => {
+        if (s.id !== (st.activeSessionId ?? st.sessions[0]?.id)) return s;
+        return {
+          ...s,
+          updatedAt: Date.now(),
+          messages: s.messages.map((m) => (m.id === id ? { ...m, ...patch } : m)),
+        };
+      }),
+    })),
+  clearActiveSession: () =>
+    set((st) => ({
+      sessions: st.sessions.map((s) =>
+        s.id === (st.activeSessionId ?? st.sessions[0]?.id) ? { ...s, messages: [] } : s
+      ),
+    })),
   setQuickActions: (quickActions) => set({ quickActions }),
   setCustomPrompts: (customPrompts) => set({ customPrompts }),
   setSelectedText: (selectedText) => set({ selectedText }),

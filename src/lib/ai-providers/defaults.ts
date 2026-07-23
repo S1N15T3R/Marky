@@ -22,10 +22,10 @@ export function defaultProviders(): AIProviderConfig[] {
   });
 
   return [
-    mk("openai", "OpenAI", "gpt-4o-mini", true, true),
+    mk("openai", "OpenAI", "gpt-4o-mini", false),
     mk("anthropic", "Anthropic", "claude-3-5-sonnet-latest", false),
     mk("google", "Google", "gemini-1.5-flash", false),
-    mk("ollama", "Ollama", "llama3.1", true),
+    mk("ollama", "Ollama", "qwen3:4b", true, true),
     mk("openrouter", "OpenRouter", "openai/gpt-4o", false),
     mk("custom", "Custom", "custom-model", false),
   ];

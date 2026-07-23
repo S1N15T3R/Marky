@@ -27,6 +27,7 @@ pub fn file_exists(path: String) -> bool {
 pub struct FileNode {
   pub name: String,
   pub path: String,
+  #[serde(rename = "isDir")]
   pub is_dir: bool,
   pub children: Option<Vec<FileNode>>,
 }

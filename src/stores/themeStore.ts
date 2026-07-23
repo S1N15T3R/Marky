@@ -46,4 +46,9 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
   apply: () => applyTheme(get().theme, get().accentOverride, get().fontMono),
 }));
 
+// Apply the default theme to <html> once at module load so the app is styled
+// correctly before the async persisted-settings effect runs (no flash / no
+// missing data-theme attribute).
+applyTheme("midnight", null, "jetbrains");
+
 export { themeMeta };

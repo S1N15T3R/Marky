@@ -36,6 +36,20 @@
   --hljs-del: #e06c75;
 }
 
+/* Native <select>/<option> dropdowns: force the app's dark theme so the
+   model/provider pickers are readable (otherwise the OS renders a white
+   popup with light text that is invisible on a dark UI). */
+select,
+select option,
+select optgroup {
+  background-color: var(--marky-surface-2);
+  color: var(--marky-text);
+}
+select:focus,
+select:hover {
+  border-color: var(--marky-accent);
+}
+
 * {
   box-sizing: border-box;
 }

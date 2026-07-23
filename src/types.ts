@@ -42,6 +42,14 @@ export interface ChatMessage {
   tokens?: number;
 }
 
+export interface ChatSession {
+  id: string;
+  title: string;
+  messages: ChatMessage[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface RecentFile {
   path: string;
   name: string;
@@ -86,6 +94,8 @@ export interface Settings {
   editorZoom: number; // percent
   activeProviderId: string | null;
   defaultExportDir: string | null;
+  aiPanelWidth: number; // px width of the AI chat split
+  fileSidebarWidth: number; // px width of the Files/explorer sidebar
 }
 
 export interface TocItem {
